@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Test</title>
+  <style>
+    /* Basic styling */
+    body { background: #f5f5f5; color: #222; font-family: "Arial", sans-serif; padding: 20px; }
+    .container { max-width: 650px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+    h1 { text-align: center; color: #0044cc; font-weight: bold; }
+    .timer { background: #333; padding: 10px; font-size: 18px; font-weight: bold; text-align: center; border-radius: 5px; margin-bottom: 20px; color: white; }
+    .question { background: white; padding: 15px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+    .options { display: flex; flex-direction: column; gap: 8px; }
+    input[type="radio"] { display: none; }
+    label { display: flex; align-items: center; padding: 10px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; transition: all 0.3s; }
+    label:hover { background: #eee; }
+    input[type="radio"]:checked + label { background: #0044cc; color: white; border-color: #0044cc; }
+    button { background: #222; color: white; font-size: 16px; padding: 12px; border: none; border-radius: 5px; cursor: pointer; width: 100%; transition: all 0.3s; }
+    button:hover { background: #444; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    #result { margin-top: 20px; padding: 10px; background: #0044cc; color: white; font-weight: bold; text-align: center; border-radius: 5px; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Dynamic Test</h1>
+  <div class="timer" id="timer">Time left: 30:00</div>
+  <form id="quizForm"></form>
+  <button id="submitBtn" onclick="checkAnswers()">Submit Test</button>
+  <div id="result"></div>
+</div>
+
+<script>
+  // Retrieve the saved test from localStorage
+  let questions = JSON.parse(localStorage.getItem("questionPaper") || "[]");
+  const quizForm = document.getElementById("quizForm");
+
+  if (questions.length === 0) {
+    quizForm.innerHTML = "<p>No questions found. Please create a test using generator.html.</p>";
+  } else {
+    // Generate questions dynamically
+    questions.forEach((q, index) => {
+      let div = document.createElement("div");
+      div.classList.add("question");
+      div.id = "question" + index;
+      let html = `<p>${index + 1}. ${q.question}</p><div class="options">`;
+      q.options.forEach((option, i) => {
+        html += `
+          <input type="radio" id="q${index}${i}" name="q${index}" value="${String.fromCharCode(65 + i)}">
+          <label for="q${index}${i}">${String.fromCharCode(65 + i)}) ${option}</label>`;
+      });
+      html += "</div>";
+      div.innerHTML = html;
+      quizForm.appendChild(div);
+    });
+  }
+
+  // Countdown timer (set to 30 minutes)
+  let timeLeft = 120 * 60; // in seconds
+  const timerDisplay = document.getElementById("timer");
+
+  function updateTimer() {
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+    timerDisplay.textContent = `Time left: ${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+    if (timeLeft > 0) {
+      timeLeft--;
+      setTimeout(updateTimer, 1000);
+    } else {
+      checkAnswers(); // Auto-submit when time is up
+    }
+  }
+  updateTimer();
+
+  function checkAnswers() {
+    let score = 0;
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.disabled = true; // Prevent multiple submissions
+
+    questions.forEach((q, index) => {
+      let selected = document.querySelector(`input[name="q${index}"]:checked`);
+      let questionDiv = document.getElementById("question" + index);
+      let correctIndex = ["A", "B", "C", "D"].indexOf(q.answer); // Get correct option index
+
+      if (selected) {
+        let selectedIndex = ["A", "B", "C", "D"].indexOf(selected.value); // Convert selected letter to index
+
+        if (selectedIndex === correctIndex) {
+          score++;
+        } else {
+          questionDiv.innerHTML += `<p style="color: red; font-weight: bold;">Correct answer: ${q.answer}) ${q.options[correctIndex]}</p>`;
+        }
+      } else {
+        questionDiv.innerHTML += `<p style="color: red; font-weight: bold;">Correct answer: ${q.answer}) ${q.options[correctIndex]}</p>`;
+      }
+    });
+
+    let resultDiv = document.getElementById("result");
+    resultDiv.innerHTML = `<p>Your score: ${score} out of ${questions.length}</p>`;
+    resultDiv.style.display = "block";
+  }
+</script>
+
+</body>
+</html>
